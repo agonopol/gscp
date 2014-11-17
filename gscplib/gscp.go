@@ -151,30 +151,3 @@ func (this *store) Chmod(remote, entity, role string) error {
 	_, err := this.getService("").ObjectAccessControls.Insert(bucket, object, acl).Do()
 	return err
 }
-
-// func main() {)
-
-// 	// Insert ACL for an object.
-// 	// This illustrates the minimum requirements.
-// 	objectAcl := &storage.ObjectAccessControl{
-// 		Bucket: bucketName, Entity: entityName, Object: objectName, Role: "READER",
-// 	}
-// 	if res, err := service.ObjectAccessControls.Insert(bucketName, objectName, objectAcl).Do(); err == nil {
-// 		fmt.Printf("Result of inserting ACL for %v/%v:\n%v\n\n", bucketName, objectName, res)
-// 	} else {
-// 		fatalf(service, "Failed to insert ACL for %s/%s: %v.", bucketName, objectName, err)
-// 	}
-
-// 	// Get ACL for an object.
-// 	if res, err := service.ObjectAccessControls.Get(bucketName, objectName, entityName).Do(); err == nil {
-// 		fmt.Printf("Users in group %v can access %v/%v as %v.\n\n",
-// 			res.Entity, bucketName, objectName, res.Role)
-// 	} else {
-// 		fatalf(service, "Failed to get ACL for %s/%s: %v.", bucketName, objectName, err)
-// 	}
-
-// 	if !restoreOriginalState(service) {
-// 		os.Exit(1)
-// 	}
-
-// }
