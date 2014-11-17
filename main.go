@@ -1,10 +1,13 @@
 package main
 
 import (
-	"flags"
+	"flag"
 	"gscp/gscplib"
+	"io/ioutil"
 	"log"
 	"os"
+	"os/user"
+	"path"
 	"strings"
 )
 
@@ -22,27 +25,46 @@ func main() {
 		log.Fatal("Please set GSCP_CLIENT_ID")
 	}
 
-	secret = os.Getenv("GSCP_CLIENT_SECRET")
+	secret := os.Getenv("GSCP_CLIENT_SECRET")
 	if secret == "" {
 		log.Fatal("Please set GSCP_CLIENT_SECRET")
 	}
 
-	cache = os.Getenv("GSCP_CACHE")
+	cache := os.Getenv("GSCP_CACHE")
 
-	gscp := gscplib.NewStore(client, secret, cache)
+	if cache == "" {
+		u, err := user.Current()
+		if err != nil {
+			log.Fatal(err)
+		}
 
-	args := flags.Args()
+		cache = path.Join(u.HomeDir, ".gscp", "cache.json")
+		err = os.MkdirAll(path.Dir(cache), 0755)
 
-	log.Printf("args: %v\n", args)
+		if !os.IsExist(err) && err != nil {
+			log.Fatal(err)
+		}
+
+		if _, err := os.Stat(cache); err != nil {
+			ioutil.WriteFile(cache, []byte{}, 0755)
+		}
+	}
+
+	gscp := gscplib.NewStore(client, secret, cache, os.Getenv("GSCP_CODE"))
+
+	flag.Parse()
+	args := flag.Args()
+
 	if len(args) == 2 {
-		if strings.Contains(args[1], "@") {
-			gscp.Get(args[1], args[2])
+		if strings.Contains(args[0], "@") {
+			gscp.Get(args[0], args[1])
 		} else {
-			gscp.Put(args[1], args[2])
+			gscp.Put(args[0], args[1])
 		}
 	} else if len(args) == 1 {
-		if strings.Contains(args[1], "@") {
-			objects, err := gscp.Ls(args[1])
+		if strings.Contains(args[0], "@") {
+			log.Println("Listing objects")
+			objects, err := gscp.Ls(args[0])
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -50,7 +72,7 @@ func main() {
 				println(object)
 			}
 		} else {
-			buckets, err := gscp.Buckets(args[1])
+			buckets, err := gscp.Buckets(args[0])
 			if err != nil {
 				log.Fatal(err)
 			}

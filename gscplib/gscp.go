@@ -43,24 +43,26 @@ func GetRemoteBucketName(remote []string) (string, string) {
 
 type store struct {
 	auth    *oauth.Config
+	code    string
 	service *storage.Service
 }
 
-func NewStore(clientId, clientSecret, cacheFile string) *store {
+func NewStore(clientId, clientSecret, cache, code string) *store {
 	this := new(store)
+	this.code = code
 	this.auth = &oauth.Config{
 		ClientId:     clientId,
 		ClientSecret: clientSecret,
 		Scope:        scope,
 		AuthURL:      authURL,
 		TokenURL:     tokenURL,
-		TokenCache:   oauth.CacheFile(cacheFile),
+		TokenCache:   oauth.CacheFile(cache),
 		RedirectURL:  redirectURL,
 	}
 	return this
 }
 
-func (this *store) getService(code string) *storage.Service {
+func (this *store) getService() *storage.Service {
 	if this.service == nil {
 		// Set up a transport using the config
 		transport := &oauth.Transport{
@@ -70,14 +72,14 @@ func (this *store) getService(code string) *storage.Service {
 
 		token, err := this.auth.TokenCache.Token()
 		if err != nil {
-			if code == "" {
+			if this.code == "" {
 				url := this.auth.AuthCodeURL("")
-				fmt.Println("Visit URL to get a code then run again with -code=YOUR_CODE")
+				fmt.Println("Visit URL to get a code then run again with GSCP_CODE=YOUR_CODE")
 				fmt.Println(url)
 				os.Exit(1)
 			}
 			// Exchange auth code for access token
-			token, err = transport.Exchange(code)
+			token, err = transport.Exchange(this.code)
 			if err != nil {
 				log.Fatal("Exchange: ", err)
 			}
@@ -93,8 +95,8 @@ func (this *store) getService(code string) *storage.Service {
 
 func (this *store) Put(local, remote string) error {
 	project, bucket, objectName := GetRemoteObjectName(SplitRemote(remote))
-	if _, err := this.getService("").Buckets.Get(bucket).Do(); err != nil {
-		if _, err := this.getService("").Buckets.Insert(project, &storage.Bucket{Name: bucket}).Do(); err != nil {
+	if _, err := this.getService().Buckets.Get(bucket).Do(); err != nil {
+		if _, err := this.getService().Buckets.Insert(project, &storage.Bucket{Name: bucket}).Do(); err != nil {
 			return err
 		}
 	}
@@ -103,14 +105,14 @@ func (this *store) Put(local, remote string) error {
 	if err != nil {
 		return err
 	}
-	_, err = this.getService("").Objects.Insert(bucket, object).Media(file).Do()
+	_, err = this.getService().Objects.Insert(bucket, object).Media(file).Do()
 	return err
 }
 
 func (this *store) Get(remote, local string) error {
 	// Get an object from a bucket.
 	_, bucket, object := GetRemoteObjectName(SplitRemote(remote))
-	if res, err := this.getService("").Objects.Get(bucket, object).Do(); err == nil {
+	if res, err := this.getService().Objects.Get(bucket, object).Do(); err == nil {
 		fmt.Printf("The media download link for %v/%v is %v.\n\n", bucket, res.Name, res.MediaLink)
 		return nil
 	} else {
@@ -119,7 +121,8 @@ func (this *store) Get(remote, local string) error {
 }
 
 func (this *store) Buckets(project string) ([]string, error) {
-	if res, err := this.getService("").Buckets.List(project).Do(); err == nil {
+	this.getService().Buckets.List(project).Do()
+	if res, err := this.getService().Buckets.List(project).Do(); err == nil {
 		buckets := make([]string, 0)
 		for _, item := range res.Items {
 			buckets = append(buckets, item.Id)
@@ -132,7 +135,7 @@ func (this *store) Buckets(project string) ([]string, error) {
 
 func (this *store) Ls(remote string) ([]string, error) {
 	_, bucket := GetRemoteBucketName(SplitRemote(remote))
-	if res, err := this.getService("").Objects.List(bucket).Do(); err == nil {
+	if res, err := this.getService().Objects.List(bucket).Do(); err == nil {
 		objects := make([]string, 0)
 		for _, object := range res.Items {
 			objects = append(objects, object.Name)
@@ -148,6 +151,6 @@ func (this *store) Chmod(remote, entity, role string) error {
 	acl := &storage.ObjectAccessControl{
 		Bucket: bucket, Entity: entity, Object: object, Role: role,
 	}
-	_, err := this.getService("").ObjectAccessControls.Insert(bucket, object, acl).Do()
+	_, err := this.getService().ObjectAccessControls.Insert(bucket, object, acl).Do()
 	return err
 }
