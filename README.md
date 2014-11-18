@@ -24,6 +24,6 @@ store.Get(remote, local string) error
 
 store.Put(local, remote string) error
 
-store.Ls(bucket) (objects []string, err error)
+store.Ls(bucket) (objects []*storage.Bucket, err error)
 
-store.Buckets(project) (buckets []string, err error)
+store.Buckets(project) (buckets []*storage.Object, err error)

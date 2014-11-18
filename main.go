@@ -63,7 +63,6 @@ func main() {
 		}
 	} else if len(args) == 1 {
 		if strings.Contains(args[0], "@") {
-			log.Println("Listing objects")
 			objects, err := gscp.Ls(args[0])
 			if err != nil {
 				log.Fatal(err)
