@@ -7,13 +7,13 @@ SCP Like commandline/lib for Google Cloud Storage
 usage: 
 
 
-GSCP_CLIENT_ID=CLIENT_ID GSCP_CLIENT_SECRET=CLIENT_SECRET gscp project@bucket:object file
+GSCP_CLIENT_ID=CLIENT_ID GSCP_CLIENT_SECRET=CLIENT_SECRET gscp project-id@bucket:object file #copy file from google store to local path
 
-gscp file project@bucket:object
+gscp file project-id@bucket:object #copy local path to remote store
 
-gscp project@bucket
+gscp project-d@bucket #list all objects in the bucket
 
-gscp project
+gscp project-id #list all buckets in the project
 
 
 gscplib:
