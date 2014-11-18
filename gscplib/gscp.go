@@ -2,9 +2,11 @@ package gscplib
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
+	"path"
 	"strings"
 
 	"code.google.com/p/goauth2/oauth"
@@ -45,6 +47,7 @@ type store struct {
 	auth    *oauth.Config
 	code    string
 	service *storage.Service
+	client  *http.Client
 }
 
 func NewStore(clientId, clientSecret, cache, code string) *store {
@@ -59,11 +62,22 @@ func NewStore(clientId, clientSecret, cache, code string) *store {
 		TokenCache:   oauth.CacheFile(cache),
 		RedirectURL:  redirectURL,
 	}
+
 	return this
 }
 
 func (this *store) getService() *storage.Service {
-	if this.service == nil {
+	this.init()
+	return this.service
+}
+
+func (this *store) getClient() *http.Client {
+	this.init()
+	return this.client
+}
+
+func (this *store) init() {
+	if this.service == nil || this.client == nil {
 		// Set up a transport using the config
 		transport := &oauth.Transport{
 			Config:    this.auth,
@@ -88,9 +102,9 @@ func (this *store) getService() *storage.Service {
 		transport.Token = token
 
 		httpClient := transport.Client()
+		this.client = httpClient
 		this.service, err = storage.New(httpClient)
 	}
-	return this.service
 }
 
 func (this *store) Put(local, remote string) error {
@@ -109,12 +123,37 @@ func (this *store) Put(local, remote string) error {
 	return err
 }
 
+func (this *store) download(remote, local string) error {
+
+	err := os.MkdirAll(path.Dir(local), 0755)
+
+	if !os.IsExist(err) && err != nil {
+		log.Fatal(err)
+	}
+	out, err := os.Create(local)
+	defer out.Close()
+
+	resp, err := this.client.Get(remote)
+	defer resp.Body.Close()
+
+	n := int64(0)
+	for n < resp.ContentLength {
+		r, err := io.Copy(out, resp.Body)
+		if err != nil {
+			return err
+		}
+		n += r
+	}
+	return nil
+}
+
 func (this *store) Get(remote, local string) error {
-	// Get an object from a bucket.
 	_, bucket, object := GetRemoteObjectName(SplitRemote(remote))
+	if local == "." {
+		local = object
+	}
 	if res, err := this.getService().Objects.Get(bucket, object).Do(); err == nil {
-		fmt.Printf("The media download link for %v/%v is %v.\n\n", bucket, res.Name, res.MediaLink)
-		return nil
+		return this.download(res.MediaLink, local)
 	} else {
 		return err
 	}
