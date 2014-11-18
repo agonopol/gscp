@@ -159,29 +159,29 @@ func (this *store) Get(remote, local string) error {
 	}
 }
 
-func (this *store) Buckets(project string) ([]string, error) {
+func (this *store) Buckets(project string) ([]*storage.Bucket, error) {
 	this.getService().Buckets.List(project).Do()
 	if res, err := this.getService().Buckets.List(project).Do(); err == nil {
-		buckets := make([]string, 0)
+		buckets := make([]*storage.Bucket, 0)
 		for _, item := range res.Items {
-			buckets = append(buckets, item.Id)
+			buckets = append(buckets, item)
 		}
 		return buckets, nil
 	} else {
-		return []string{}, err
+		return []*storage.Bucket{}, err
 	}
 }
 
-func (this *store) Ls(remote string) ([]string, error) {
+func (this *store) Ls(remote string) ([]*storage.Object, error) {
 	_, bucket := GetRemoteBucketName(SplitRemote(remote))
 	if res, err := this.getService().Objects.List(bucket).Do(); err == nil {
-		objects := make([]string, 0)
+		objects := make([]*storage.Object, 0)
 		for _, object := range res.Items {
-			objects = append(objects, object.Name)
+			objects = append(objects, object)
 		}
 		return objects, nil
 	} else {
-		return []string{}, err
+		return []*storage.Object{}, err
 	}
 }
 

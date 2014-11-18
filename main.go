@@ -69,7 +69,7 @@ func main() {
 				log.Fatal(err)
 			}
 			for _, object := range objects {
-				println(object)
+				println(object.Name)
 			}
 		} else {
 			buckets, err := gscp.Buckets(args[0])
@@ -77,7 +77,7 @@ func main() {
 				log.Fatal(err)
 			}
 			for _, bucket := range buckets {
-				println(bucket)
+				println(bucket.Id)
 			}
 		}
 	} else {
